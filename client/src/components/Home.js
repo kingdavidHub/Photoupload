@@ -22,7 +22,7 @@ class Home extends Component {
     }
 
     imageAlbum = () => {
-        const photoArr = this.state.photodata;
+        let photoArr = this.state.photodata;
         return photoArr.map(phArr => {
             return (
                 <img src={phArr.photourl} style={{height: '300px', width: '300px', margin: '10px', borderRadius: '10px'}} alt="..."  key={phArr._id} />
