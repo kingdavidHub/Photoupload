@@ -5,6 +5,9 @@ const photoSchema = new Schema({
         type: String,
         required: true
     },
+    photoBump: {
+        type: Array
+    },
     caption: {
         type: String,
         default: '#photo upload'

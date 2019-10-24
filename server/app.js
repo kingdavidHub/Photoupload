@@ -3,10 +3,11 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
-const cloudinary = require('cloudinary');
+const cloudinary = require('cloudinary').v2;
 const Photo = require('./models/PhotoSchema');
-const { dateHolder } = require('./helper/');
+const { dateHolder, unlinkFile } = require('./helper/');
 
 mongoose.connect('mongodb://localhost:27017/photoupload', { useCreateIndex: true, useUnifiedTopology: true, useNewUrlParser: true });
 
@@ -30,29 +31,31 @@ const storage = multer.diskStorage({
     }
 });
 
-// ! the type name of input in Upload.js component
-const upload = multer({ storage: storage });
+const upload = multer({ storage: storage }).array('file');
 
-app.post('/upload', upload.single('file'), async (req, res) => {
-    try {
-        const result = await cloudinary.v2.uploader.upload(req.file.path);
+// ! upload multiple file code
+app.post('/upload', upload, async (req, res) => {
+     // ? array of multiple files
+    const photoArray = req.files;
+    for (let i = 0; i < photoArray.length; i++) {
+        const result = await cloudinary.uploader.upload(photoArray[i].path, {folder: "Photo Upload", backup: true});
         const newPhoto = new Photo({
             photourl: result.secure_url,
             date: dateHolder()
         });
-        fs.unlink(req.file.path, (err) => {
-            if (err) {
-                throw err;
-            }
-        });
-        await newPhoto.save();
-        return res.status(200);
-    } catch (error) {
-        res.status(500);
-        throw error;
+        
+        await newPhoto.save()
+        .then(result => {
+            unlinkFile(photoArray[i].path);
+        })
+        .then(result => {
+            return res.status(200).json(result);
+        })
+        .catch(err => {
+           return res.status(500).json(err);
+        })
     }
 });
-
 
 app.get('/gallery', async (req, res) => {
     try {
